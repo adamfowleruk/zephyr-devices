@@ -1,0 +1,11 @@
+# TMP1075 digital temperature sensor config options
+
+# Copyright (c) 2021 Herald Project Contributors
+# Copyright (c) 2016 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig TMP1075
+	bool "TMP1075 Digital temperature sensor"
+	depends on I2C
+	help
+	  Enable driver for TMP1075 Digital temperature sensors.
