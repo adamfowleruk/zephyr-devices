@@ -4,8 +4,15 @@ CONFIG_SOC_SERIES_NRF52X=y
 CONFIG_SOC_NRF52833_QIAA=y
 CONFIG_BOARD_NRF52833_HERALD_BASE=y
 
-# Enable MPU
+# DO NOT EVER CHANGE THE BELOW! IT COULD BRICK THE DEVICE!!!
+# This pin (p0.18/reset) is used for ACC_INT1 (Accelerometer GPIO Interrupt 1) on the main board
+CONFIG_GPIO_AS_PINRESET=n
+
+# Enable MPU (Memory protection unit)
 CONFIG_ARM_MPU=y
+
+# Enable SPI for external flash
+CONFIG_SPI=y
 
 # Standard LIS2DE12 settings
 CONFIG_I2C=y

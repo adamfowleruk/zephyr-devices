@@ -10,7 +10,8 @@
 
 / {
 	model = "Herald nRF52833 Wearable or Beacon";
-	compatible = "nrf52833";
+	compatible = "nordic,nRF52833-QIAA", "nordic,nRF52833", "nordic,nRF52", "simple-bus";
+	/*compatible = "nordic,nrf52833";*/
 
 	chosen {
 		zephyr,console = &uart0;
@@ -25,19 +26,20 @@
 
 	leds {
 		compatible = "gpio-leds";
-		led0: led_0 {
-			gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
+		led0_green: led_0 {
+			gpios = <&gpio0 14 GPIO_ACTIVE_LOW>;
 			label = "Green LED 0";
 		};
-		led1: led_1 {
-			gpios = <&gpio0 14 GPIO_ACTIVE_LOW>;
-			label = "Green LED 1";
-		};
-		led2: led_2 {
+		led1_red: led_1 {
 			gpios = <&gpio0 15 GPIO_ACTIVE_LOW>;
-			label = "Green LED 2";
+			label = "Red LED 1";
 		};
-		led3: led_3 {
+		led2_blue: led_2 {
+			gpios = <&gpio0 17 GPIO_ACTIVE_LOW>;
+			label = "Blue LED 2";
+		};
+		/* Following is unused */
+		led3_green: led_3 {
 			gpios = <&gpio0 16 GPIO_ACTIVE_LOW>;
 			label = "Green LED 3";
 		};
@@ -45,19 +47,29 @@
 
 	pwmleds {
 		compatible = "pwm-leds";
-		pwm_led0: pwm_led_0 {
-			pwms = <&pwm0 13>;
+		green_pwm_led: pwm_led_0 {
+			pwms = <&pwm0 14>;
 		};
+		/* TODO PWM for other LEDs */
 	};
 
 	/* Declaration of aliases */
 	aliases {
-		led0 = &led0;
-		led1 = &led1;
-		led2 = &led2;
-		led3 = &led3;
-		pwm-led0 = &pwm_led0;
+		led0 = &led0_green;
+		led1 = &led1_red;
+		led2 = &led2_blue;
+		led3 = &led3_green;
+		led0-green = &led0_green;
+		led1-red = &led1_red;
+		led2-blue = &led2_blue;
+		led3-green = &led3_green;
+		pwm-led0 = &green_pwm_led;
+		green-pwm-led = &green_pwm_led;
 	};
+};
+
+&adc {
+	status = "okay";
 };
 
 &gpiote {
@@ -73,7 +85,7 @@
 };
 
 &uart0 {
-	compatible = "nordic,nrf-uart";
+	compatible = "nordic,nrf-uarte"; /* WAS nrf-uart (no e) */
 	current-speed = <115200>;
 	status = "okay";
 	tx-pin = <6>;
@@ -85,33 +97,103 @@
 &i2c0 {
 	compatible = "nordic,nrf-twi";
   status = "okay";
-	sda-pin = <26>;
-	scl-pin = <27>;
-
-  /* ST Microelectronics LIS2DE12 motion sensor */
+	sda-pin = <31>; /* sda-pin = <36>; */
+	scl-pin = <11>; /* scl-pin = <7>; */
+	
+	/* MAIN BOARD - Now add I2C devices on the main board */
+  /* Accelerometer - ST Microelectronics LIS2DE12 motion sensor */
   lis2de@19 { /* Pulled HIGH via VDD. 18 if to GND instead */
     compatible = "st,lis2dh";
     label = "LIS2DE12";
     reg = <0x19>; /* Pulled HIGH via VDD. 18 if to GND instead */
-		/*irq-gpios = <&gpio0 15 0>;*/
+		irq-gpios = <&gpio0 18 0>, <&gpio0 28 0>;
   };
+
+	/* rtc1 with interrupt - pcf85063a */
+	pcf85063a@51 {
+		compatible = "pcf85063a";
+		/* status = "okay"; */
+		label = "PCF85063A";
+		reg = <0x51>;
+		irq-gpios = <&gpio0 2 0>;
+	};
+
+	/* Daylight sensor - apds9250 */
+	apds9250@52 {
+		compatible = "apds9250";
+		/* status = "okay"; */
+		label = "APDS9250";
+		reg = <0x52>;
+	};
+
+	/* DAUGHTER BOARD ONLY:- */
+	/* Pulse oximeter and heart rate sensor - MAX30102 */
+	max30102@57 {
+		compatible = "max30102";
+		/* status = "okay"; */
+		label = "MAX30102";
+		reg = <0x57>;
+	};
+
+	/* Skin temperature - tmp1075 */
+	tmp1075@48 {
+		compatible = "tmp1075";
+		/* status = "okay"; */
+		label = "TMP1075";
+		reg = <0x48>;
+	};
 };
+
+/* TODO Add battery status reading on BT_STAT pin 0.29/ain5 */
 
 &i2c1 {
 	compatible = "nordic,nrf-twi";
 	/* Cannot be used together with spi1. */
-	/* status = "okay"; */
-	sda-pin = <30>;
-	scl-pin = <31>;
+	/*status = "okay";*/
+	sda-pin = <31>;
+	scl-pin = <11>;
 };
+
+&spi0 {
+	compatible = "nordic,nrf-spi";
+	/* Cannot be used together with i2c1. */
+	/*status = "okay";*/
+	sck-pin = <31>;
+	mosi-pin = <30>;
+	miso-pin = <40>;
+};
+
+&spi1 {
+	compatible = "nordic,nrf-spi";
+	status = "okay";
+	sck-pin = <6>;
+	mosi-pin = <5>;
+	miso-pin = <4>;
+};
+
+/* TODO add external qspi flash1 definition here */
+/* External flash example: https://github.com/zephyrproject-rtos/zephyr/blob/ffaff520eea4ba8ccd64dcdb3ce36f11085ffa9c/boards/arm/ubx_bmd340eval_nrf52840/ubx_bmd340eval_nrf52840.dts#L210 */
+
+/*
+Not found by default - part of radio?
+&nfc0 {
+	compatible ="st,st25r3911b";
+	status = "okay";
+	irq-gpios = <&gpio0 22 0>, <&gpio0 23 0>;
+};
+*/
 
 &pwm0 {
 	status = "okay";
-	ch0-pin = <13>;
+	ch0-pin = <14>;
 	ch0-inverted;
 };
 
 &flash0 {
+	/*
+	 * For more information, see:
+	 * http://docs.zephyrproject.org/latest/guides/dts/index.html#flash-partitions
+	 */
 
 	partitions {
 		compatible = "fixed-partitions";
@@ -141,7 +223,9 @@
 	};
 };
 
-&usbd {
+/* TODO include external flash chip too */
+
+zephyr_udc0: &usbd {
 	compatible = "nordic,nrf-usbd";
 	status = "okay";
 };
